@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw, Wind, Heart, Sparkles, ArrowLeft } from "lucide
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import MindfulnessTipGenerator from "@/components/MindfulnessTipGenerator";
 
 const Breaks = () => {
   const [isBreathing, setIsBreathing] = useState(false);
@@ -221,7 +222,10 @@ const Breaks = () => {
           </Card>
 
           {/* Break Activities */}
-          <Card className="focus-card">
+          <div className="space-y-6">
+            <MindfulnessTipGenerator />
+            
+            <Card className="focus-card">
             <h2 className="text-xl font-semibold mb-6 text-foreground">Break Activities</h2>
             
             <div className="space-y-4">
@@ -254,6 +258,7 @@ const Breaks = () => {
               ))}
             </div>
           </Card>
+          </div>
         </div>
 
         {/* Tips Section */}

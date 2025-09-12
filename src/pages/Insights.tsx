@@ -1,6 +1,7 @@
 import { TrendingUp, Brain, Target, Zap, Calendar, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import OpenAISettings from "@/components/OpenAISettings";
 
 const Insights = () => {
   const weeklyStats = {
@@ -51,8 +52,13 @@ For next week: Try scheduling your most challenging tasks during your 9-11 AM pe
     <div className="min-h-screen pt-24 pb-8">
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-foreground mb-2">Weekly Insights</h1>
-          <p className="text-muted-foreground">AI-powered insights to optimize your mindful productivity</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-foreground mb-2">Weekly Insights</h1>
+              <p className="text-muted-foreground">AI-powered insights to optimize your mindful productivity</p>
+            </div>
+            <OpenAISettings />
+          </div>
         </div>
 
         {/* Weekly Stats */}

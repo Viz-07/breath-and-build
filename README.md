@@ -59,7 +59,36 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- OpenAI API integration for AI-powered summaries and tips
 
+## OpenAI Integration Features
+
+### Daily Summary Generation
+- **Manual Generation**: Click "Generate Summary" on the Dashboard to create AI-powered daily summaries
+- **Auto Generation**: Automatic summary generation in the evening (after 6 PM) when tasks are completed
+- **Input Data**: Uses completed tasks, focus sessions, mindful minutes, and daily reflections
+- **Output**: Provides personalized summary and motivational message
+
+### Mindfulness Tips
+- **Random Tips**: Generate AI-powered mindfulness tips on the Breaks page
+- **Contextual**: Tips are tailored for work break scenarios
+- **Refresh**: Get new tips anytime with the "Get New Tip" button
+
+### Setup Instructions
+1. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Click "Setup AI" button on Dashboard or Insights page
+3. Enter your API key and save
+4. Start generating summaries and tips!
+
+### Security Note
+The current implementation stores the API key in localStorage for demo purposes. 
+For production use, implement a secure backend to handle OpenAI API calls.
+
+### Auto-Summary Features
+- **Evening Trigger**: Automatically generates summaries after 6 PM
+- **Smart Detection**: Only generates if tasks are completed and no summary exists for today
+- **Notifications**: Browser notifications when summary is ready (with permission)
+- **Persistent**: Remembers last summary date to avoid duplicates
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/0f81b5ab-5f59-402f-a34e-dc994f0c971f) and click on Share -> Publish.
