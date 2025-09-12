@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Plus, Star, Calendar, MoreVertical } from "lucide-react";
+import { Plus, Star, Calendar, MoreVertical, Edit, Trash2, CalendarIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Task {
   id: number;
@@ -57,7 +61,10 @@ const Tasks = () => {
   ]);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState<Date>();
   const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(task => 
@@ -76,15 +83,85 @@ const Tasks = () => {
       const newTask: Task = {
         id: Date.now(),
         title: newTaskTitle,
+        description: newTaskDescription.trim() || undefined,
         completed: false,
         priority: "medium",
-        category: "Personal"
+        category: "Personal",
+        dueDate: newTaskDueDate ? format(newTaskDueDate, "yyyy-MM-dd") : undefined
       };
       setTasks([...tasks, newTask]);
       setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskDueDate(undefined);
       setShowAddTask(false);
     }
   };
+
+  const deleteTask = (id: number) => {
+    setTasks(tasks.filter(task => task.id !== id));
+  };
+
+  const startEditTask = (task: Task) => {
+    setEditingTask(task);
+    setNewTaskTitle(task.title);
+    setNewTaskDescription(task.description || "");
+    setNewTaskDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
+    setShowAddTask(true);
+  };
+
+  const updateTask = () => {
+    if (editingTask && newTaskTitle.trim()) {
+      const updatedTask: Task = {
+        ...editingTask,
+        title: newTaskTitle,
+        description: newTaskDescription.trim() || undefined,
+        dueDate: newTaskDueDate ? format(newTaskDueDate, "yyyy-MM-dd") : undefined
+      };
+      setTasks(tasks.map(task => task.id === editingTask.id ? updatedTask : task));
+      setEditingTask(null);
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskDueDate(undefined);
+      setShowAddTask(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingTask(null);
+    setNewTaskTitle("");
+    setNewTaskDescription("");
+    setNewTaskDueDate(undefined);
+    setShowAddTask(false);
+  };
+
+  const getTaskPriorityByDate = (task: Task) => {
+    if (!task.dueDate) return task.priority;
+    const today = new Date();
+    const dueDate = new Date(task.dueDate);
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "high"; // Overdue
+    if (diffDays === 0) return "high"; // Due today
+    if (diffDays === 1) return "medium"; // Due tomorrow
+    return task.priority;
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    // Completed tasks go to bottom
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+    
+    // Sort by due date (overdue first)
+    if (a.dueDate && b.dueDate) {
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    }
+    if (a.dueDate && !b.dueDate) return -1;
+    if (!a.dueDate && b.dueDate) return 1;
+    
+    return 0;
+  });
 
   return (
     <div className="min-h-screen pt-24 pb-8">
@@ -106,10 +183,12 @@ const Tasks = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Tasks Section */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Add Task Form */}
+            {/* Add/Edit Task Form */}
             {showAddTask && (
               <Card className="focus-card animate-slide-up">
-                <h3 className="text-lg font-medium mb-4">Add New Task</h3>
+                <h3 className="text-lg font-medium mb-4">
+                  {editingTask ? "Edit Task" : "Add New Task"}
+                </h3>
                 <div className="space-y-4">
                   <Input
                     placeholder="Task title..."
@@ -117,13 +196,46 @@ const Tasks = () => {
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     className="bg-background border-border/50 focus:border-primary"
                   />
+                  <Textarea
+                    placeholder="Task description (optional)..."
+                    value={newTaskDescription}
+                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                    className="bg-background border-border/50 focus:border-primary"
+                    rows={2}
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal border-border/50 hover:border-primary/30",
+                          !newTaskDueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newTaskDueDate ? format(newTaskDueDate, "PPP") : <span>Set due date (optional)</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={newTaskDueDate}
+                        onSelect={setNewTaskDueDate}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex space-x-2">
-                    <Button onClick={addTask} className="btn-mindful flex-1">
-                      Add Task
+                    <Button 
+                      onClick={editingTask ? updateTask : addTask} 
+                      className="btn-mindful flex-1"
+                    >
+                      {editingTask ? "Update Task" : "Add Task"}
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => setShowAddTask(false)}
+                      onClick={cancelEdit}
                       className="border-border/50 hover:border-primary/30"
                     >
                       Cancel
@@ -143,68 +255,93 @@ const Tasks = () => {
               </div>
               
               <div className="space-y-3">
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`task-item group ${
-                      task.completed 
-                        ? "opacity-60 bg-success/5 border-success/20" 
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <button
-                        onClick={() => toggleTask(task.id)}
-                        className={`w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center calm-transition ${
-                          task.completed 
-                            ? "bg-success border-success" 
-                            : "border-muted-foreground hover:border-primary"
-                        }`}
-                      >
-                        {task.completed && (
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
-                        )}
-                      </button>
-                      
-                      <div className="flex-1">
-                        <h4 className={`font-medium ${
-                          task.completed 
-                            ? "line-through text-muted-foreground" 
-                            : "text-foreground"
-                        }`}>
-                          {task.title}
-                        </h4>
-                        {task.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {task.description}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            task.priority === "high" 
-                              ? "bg-warning/20 text-warning-foreground" 
-                              : task.priority === "medium"
-                              ? "bg-secondary-accent/20 text-secondary-accent"
-                              : "bg-muted text-muted-foreground"
+                {sortedTasks.map((task) => {
+                  const effectivePriority = getTaskPriorityByDate(task);
+                  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
+                  const isDueToday = task.dueDate && format(new Date(task.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+                  
+                   return (
+                    <div
+                      key={task.id}
+                      className={`task-item group ${
+                        task.completed 
+                          ? "opacity-60 bg-success/5 border-success/20" 
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-start space-x-4">
+                        <button
+                          onClick={() => toggleTask(task.id)}
+                          className={`w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center calm-transition ${
+                            task.completed 
+                              ? "bg-success border-success" 
+                              : "border-muted-foreground hover:border-primary"
+                          }`}
+                        >
+                          {task.completed && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </button>
+                        
+                        <div className="flex-1">
+                          <h4 className={`font-medium ${
+                            task.completed 
+                              ? "line-through text-muted-foreground" 
+                              : "text-foreground"
                           }`}>
-                            {task.priority}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {task.category}
-                          </span>
+                            {task.title}
+                          </h4>
+                          {task.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {task.description}
+                            </p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              effectivePriority === "high" 
+                                ? isOverdue ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning-foreground" 
+                                : effectivePriority === "medium"
+                                ? "bg-secondary-accent/20 text-secondary-accent"
+                                : "bg-muted text-muted-foreground"
+                            }`}>
+                              {isOverdue ? "Overdue" : isDueToday ? "Due Today" : task.priority}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {task.category}
+                            </span>
+                            {task.dueDate && (
+                              <span className={`text-xs flex items-center ${
+                                isOverdue ? "text-destructive" : isDueToday ? "text-warning-foreground" : "text-muted-foreground"
+                              }`}>
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {format(new Date(task.dueDate), "MMM d")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-1 opacity-0 group-hover:opacity-100 calm-transition">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => startEditTask(task)}
+                            className="hover:bg-primary/10"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => deleteTask(task.id)}
+                            className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
-                      
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 calm-transition"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           </div>

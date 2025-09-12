@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Play, Pause, RotateCcw, Wind, Heart, Sparkles } from "lucide-react";
+import { Play, Pause, RotateCcw, Wind, Heart, Sparkles, ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Breaks = () => {
   const [isBreathing, setIsBreathing] = useState(false);
@@ -16,6 +17,7 @@ const Breaks = () => {
   };
   
   const [selectedPattern, setSelectedPattern] = useState<keyof typeof breathingPatterns>("4-4-4");
+  const navigate = useNavigate();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -124,8 +126,20 @@ const Breaks = () => {
     <div className="min-h-screen pt-24 pb-8">
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-foreground mb-2">Mindful Breaks</h1>
-          <p className="text-muted-foreground">Restore your energy with guided breathing and activities</p>
+          <div className="flex items-center justify-center mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/focus")}
+              className="mr-4 hover:bg-primary/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Focus
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-3xl font-semibold text-foreground mb-2">Mindful Breaks</h1>
+              <p className="text-muted-foreground">Restore your energy with guided breathing and activities</p>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">

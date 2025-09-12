@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, RotateCcw, Settings, Coffee } from "lucide-react";
+import { Play, Pause, RotateCcw, Settings, Coffee, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const FocusTimer = () => {
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<"focus" | "shortBreak" | "longBreak">("focus");
   const [sessions, setSessions] = useState(0);
+  const [showBreakPrompt, setShowBreakPrompt] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const navigate = useNavigate();
 
   const modes = {
     focus: { duration: 25 * 60, label: "Focus Time", color: "primary" },
@@ -22,17 +25,12 @@ const FocusTimer = () => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setIsRunning(false);
-            // Auto-switch modes
+            // Handle session completion
             if (mode === "focus") {
               const newSessions = sessions + 1;
               setSessions(newSessions);
-              if (newSessions % 4 === 0) {
-                setMode("longBreak");
-                return modes.longBreak.duration;
-              } else {
-                setMode("shortBreak");
-                return modes.shortBreak.duration;
-              }
+              setShowBreakPrompt(true);
+              return modes.focus.duration; // Keep timer ready for next session
             } else {
               setMode("focus");
               return modes.focus.duration;
@@ -67,6 +65,20 @@ const FocusTimer = () => {
     setIsRunning(false);
     setMode(newMode);
     setTimeLeft(modes[newMode].duration);
+    setShowBreakPrompt(false);
+  };
+
+  const takeBreak = () => {
+    navigate("/breaks");
+  };
+
+  const skipBreak = () => {
+    setShowBreakPrompt(false);
+    // Continue with focus session
+  };
+
+  const getNextBreakType = () => {
+    return sessions % 4 === 0 ? "Long Break (15 min)" : "Short Break (5 min)";
   };
 
   const formatTime = (seconds: number) => {
@@ -87,6 +99,36 @@ const FocusTimer = () => {
           <h1 className="text-3xl font-semibold text-foreground mb-2">Focus Timer</h1>
           <p className="text-muted-foreground">Stay focused with the Pomodoro technique</p>
         </div>
+
+        {/* Break Prompt Modal */}
+        {showBreakPrompt && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+            <Card className="focus-card max-w-md mx-4">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-primary flex items-center justify-center">
+                  <Coffee className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">Focus Session Complete!</h3>
+                <p className="text-muted-foreground mb-6">
+                  Great work! Time for a {getNextBreakType().toLowerCase()}.
+                </p>
+                <div className="flex space-x-3">
+                  <Button onClick={takeBreak} className="btn-mindful flex-1">
+                    <Coffee className="w-4 h-4 mr-2" />
+                    Take Break
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={skipBreak}
+                    className="flex-1 border-border/50 hover:border-primary/30"
+                  >
+                    Skip & Continue
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Timer */}
