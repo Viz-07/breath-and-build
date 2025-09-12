@@ -28,10 +28,19 @@ const Reflection = () => {
   const [savedEntries] = useState<JournalEntry[]>([
     {
       id: "1",
-      date: "2024-01-14",
+      date: "2024-09-12",
       mood: "happy",
       gratitude: ["Morning coffee", "Team collaboration", "Peaceful evening"],
-      reflection: "Today was productive and fulfilling. I felt energized during my focus sessions and made good progress on the project proposal.",
+      reflection: "Today was productive and fulfilling. Felt extremely happy during my focus sessions and made good progress on the project proposal.",
+      wins: ["Completed 4 focus sessions", "Finished project outline"],
+      improvements: "Could have taken more walking breaks"
+    },
+    {
+      id: "2",
+      date: "2024-09-13",
+      mood: "neutral",
+      gratitude: ["Morning coffee", "Team collaboration", "Peaceful evening"],
+      reflection: "Work Heavy and interactive day. I felt energized during my focus sessions and made good progress on the project proposal.",
       wins: ["Completed 4 focus sessions", "Finished project outline"],
       improvements: "Could have taken more walking breaks"
     }
@@ -43,6 +52,12 @@ const Reflection = () => {
     happy: { icon: Smile, color: "success", label: "Great Day" },
     neutral: { icon: Meh, color: "secondary-accent", label: "Okay Day" },
     sad: { icon: Frown, color: "warning", label: "Tough Day" }
+  };
+
+  const moodBackgroundOpacity = {
+    happy: "10",       // subtle but visible
+    neutral: "20",     // more visible
+    sad: "20",         // more visible
   };
 
   const updateGratitude = (index: number, value: string) => {
@@ -108,7 +123,7 @@ const Reflection = () => {
                       onClick={() => setCurrentEntry({ ...currentEntry, mood })}
                       className={`flex-1 p-4 rounded-lg border-2 calm-transition ${
                         currentEntry.mood === mood
-                          ? `border-${color} bg-${color}/10`
+                          ? `border-${color} bg-${color}/${moodBackgroundOpacity[mood]}`
                           : "border-border/30 hover:border-primary/30"
                       }`}
                     >
@@ -217,6 +232,8 @@ const Reflection = () => {
               <div className="space-y-3">
                 {savedEntries.map((entry) => {
                   const MoodIcon = moodIcons[entry.mood].icon;
+                  const [showFull, setShowFull] = useState(false); // add this inside the map
+
                   return (
                     <div key={entry.id} className="task-item group">
                       <div className="flex items-center justify-between mb-2">
@@ -228,16 +245,17 @@ const Reflection = () => {
                         </span>
                         <MoodIcon className={`w-4 h-4 text-${moodIcons[entry.mood].color}`} />
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {entry.reflection}
+                      <p className="text-sm text-muted-foreground">
+                        {showFull ? entry.reflection : entry.reflection.slice(0, 50) + (entry.reflection.length > 50 ? "..." : "")}
                       </p>
                       <Button
                         size="sm"
                         variant="ghost"
                         className="opacity-0 group-hover:opacity-100 calm-transition mt-2"
+                        onClick={() => setShowFull(!showFull)}
                       >
                         <Edit3 className="w-3 h-3 mr-1" />
-                        View
+                        {showFull ? "Hide" : "View"}
                       </Button>
                     </div>
                   );

@@ -21,7 +21,7 @@ export interface TaskSummaryInput {
   completedTasks: Array<{
     title: string;
     description?: string;
-    category: string;
+    category?: string;
     completedAt?: string;
   }>;
   reflections?: {

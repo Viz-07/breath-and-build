@@ -1,9 +1,10 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus, Star, Calendar, MoreVertical, Edit, Trash2, CalendarIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useTasks } from "@/components/ui/task-context";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -28,55 +29,13 @@ interface Habit {
 }
 
 const Tasks = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { 
-      id: 1, 
-      title: "Morning meditation", 
-      description: "10 minutes of mindful breathing",
-      completed: true, 
-      priority: "high",
-      category: "Wellness",
-      dueDate: "2024-01-15"
-    },
-    { 
-      id: 2, 
-      title: "Review project proposal", 
-      completed: false, 
-      priority: "high",
-      category: "Work"
-    },
-    { 
-      id: 3, 
-      title: "Team standup meeting", 
-      completed: true, 
-      priority: "medium",
-      category: "Work"
-    },
-  ]);
-
-  const [habits, setHabits] = useState<Habit[]>([
-    { id: 1, name: "Meditation", streak: 7, completedToday: true, target: 10 },
-    { id: 2, name: "Gratitude Journal", streak: 3, completedToday: false, target: 5 },
-    { id: 3, name: "Deep Work Session", streak: 5, completedToday: true, target: 2 },
-  ]);
+  const { tasks, setTasks, toggleTask, habits, toggleHabit } = useTasks();
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState<Date>();
   const [showAddTask, setShowAddTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
-  };
-
-  const toggleHabit = (id: number) => {
-    setHabits(habits.map(habit => 
-      habit.id === id ? { ...habit, completedToday: !habit.completedToday } : habit
-    ));
-  };
 
   const addTask = () => {
     if (newTaskTitle.trim()) {
@@ -141,25 +100,18 @@ const Tasks = () => {
     const diffTime = dueDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 0) return "high"; // Overdue
+    if (diffDays < 0) return "overdue"; // Overdue
     if (diffDays === 0) return "high"; // Due today
-    if (diffDays === 1) return "medium"; // Due tomorrow
+    if (diffDays > 0 && diffDays <= 3) return "medium";
+    if (diffDays > 3) return "low";
     return task.priority;
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    // Completed tasks go to bottom
-    if (a.completed !== b.completed) {
-      return a.completed ? 1 : -1;
-    }
-    
-    // Sort by due date (overdue first)
-    if (a.dueDate && b.dueDate) {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    }
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     if (a.dueDate && !b.dueDate) return -1;
     if (!a.dueDate && b.dueDate) return 1;
-    
     return 0;
   });
 
@@ -183,7 +135,6 @@ const Tasks = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Tasks Section */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Add/Edit Task Form */}
             {showAddTask && (
               <Card className="focus-card animate-slide-up">
                 <h3 className="text-lg font-medium mb-4">
@@ -255,63 +206,64 @@ const Tasks = () => {
               </div>
               
               <div className="space-y-3">
-                {sortedTasks.map((task) => {
+                {sortedTasks.map(task => {
                   const effectivePriority = getTaskPriorityByDate(task);
-                  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
                   const isDueToday = task.dueDate && format(new Date(task.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
                   
-                   return (
+                  return (
                     <div
                       key={task.id}
-                      className={`task-item group ${
-                        task.completed 
-                          ? "opacity-60 bg-success/5 border-success/20" 
-                          : ""
-                      }`}
+                      className={`task-item group ${task.completed ? "opacity-60 bg-success/5 border-success/20" : ""}`}
                     >
                       <div className="flex items-start space-x-4">
                         <button
                           onClick={() => toggleTask(task.id)}
                           className={`w-5 h-5 rounded-full border-2 mt-1 flex items-center justify-center calm-transition ${
-                            task.completed 
-                              ? "bg-success border-success" 
-                              : "border-muted-foreground hover:border-primary"
+                            task.completed ? "bg-success border-success" : "border-muted-foreground hover:border-primary"
                           }`}
                         >
-                          {task.completed && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
+                          {task.completed && <div className="w-2 h-2 bg-white rounded-full"></div>}
                         </button>
                         
                         <div className="flex-1">
-                          <h4 className={`font-medium ${
-                            task.completed 
-                              ? "line-through text-muted-foreground" 
-                              : "text-foreground"
-                          }`}>
+                          <h4 className={`font-medium ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
                             {task.title}
                           </h4>
                           {task.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {task.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
                           )}
                           <div className="flex items-center space-x-4 mt-2">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              effectivePriority === "high" 
-                                ? isOverdue ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning-foreground" 
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                effectivePriority === "overdue"
+                                  ? "bg-red-200 text-red-800"
+                                  : effectivePriority === "high"
+                                  ? "bg-orange-200 text-orange-800"
+                                  : effectivePriority === "medium"
+                                  ? "bg-yellow-200 text-yellow-800"
+                                  : "bg-green-200 text-green-800"
+                              }`}
+                            >
+                              {effectivePriority === "overdue"
+                                ? "Overdue"
+                                : effectivePriority === "high"
+                                ? "Due Today"
                                 : effectivePriority === "medium"
-                                ? "bg-secondary-accent/20 text-secondary-accent"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
-                              {isOverdue ? "Overdue" : isDueToday ? "Due Today" : task.priority}
+                                ? "Due Soon"
+                                : "Low Priority"}
                             </span>
-                            <span className="text-xs text-muted-foreground">
-                              {task.category}
-                            </span>
+
+                            <span className="text-xs text-muted-foreground">{task.category}</span>
+
                             {task.dueDate && (
                               <span className={`text-xs flex items-center ${
-                                isOverdue ? "text-destructive" : isDueToday ? "text-warning-foreground" : "text-muted-foreground"
+                                effectivePriority === "overdue"
+                                  ? "text-red-800"
+                                  : effectivePriority === "high"
+                                  ? "text-orange-800"
+                                  : effectivePriority === "medium"
+                                  ? "text-yellow-800"
+                                  : "text-green-800"
                               }`}>
                                 <Calendar className="w-3 h-3 mr-1" />
                                 {format(new Date(task.dueDate), "MMM d")}
@@ -319,22 +271,11 @@ const Tasks = () => {
                             )}
                           </div>
                         </div>
-                        
                         <div className="flex space-x-1 opacity-0 group-hover:opacity-100 calm-transition">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => startEditTask(task)}
-                            className="hover:bg-primary/10"
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => startEditTask(task)} className="hover:bg-primary/10">
                             <Edit className="w-3 h-3" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => deleteTask(task.id)}
-                            className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)} className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
@@ -352,42 +293,43 @@ const Tasks = () => {
               <h2 className="text-xl font-semibold mb-6 text-foreground">Daily Habits</h2>
               
               <div className="space-y-4">
-                {habits.map((habit) => (
-                  <div key={habit.id} className="task-item">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={() => toggleHabit(habit.id)}
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center calm-transition ${
-                            habit.completedToday 
-                              ? "bg-primary border-primary" 
-                              : "border-muted-foreground hover:border-primary"
-                          }`}
-                        >
-                          {habit.completedToday && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          )}
-                        </button>
-                        <span className="font-medium text-foreground">{habit.name}</span>
+                {habits.map(habit => {
+                  const progress = Math.min((habit.streak / habit.target) * 100, 100);
+                  const displayValue = Math.min(habit.streak, habit.target);
+                  
+                  return (
+                    <div key={habit.id} className="task-item">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => toggleHabit(habit.id)}
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center calm-transition ${
+                              habit.completedToday ? "bg-primary border-primary" : "border-muted-foreground hover:border-primary"
+                            }`}
+                          >
+                            {habit.completedToday && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                          </button>
+                          <span className="font-medium text-foreground">{habit.name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Star className="w-4 h-4 text-warning fill-current" />
+                          <span className="text-sm font-medium text-foreground">{habit.streak}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Star className="w-4 h-4 text-warning fill-current" />
-                        <span className="text-sm font-medium text-foreground">{habit.streak}</span>
+
+                      {/* Progress bar */}
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-gradient-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {displayValue} / {habit.target} days
+                      </p>
                     </div>
-                    
-                    {/* Progress bar */}
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div 
-                        className="bg-gradient-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(habit.streak / habit.target) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {habit.streak} / {habit.target} days
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           </div>

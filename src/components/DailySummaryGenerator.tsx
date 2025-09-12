@@ -10,8 +10,8 @@ interface DailySummaryGeneratorProps {
     id: number;
     title: string;
     description?: string;
-    completed: boolean;
-    category: string;
+    completed?: boolean;
+    category?: string;
   }>;
   reflections?: {
     mood: "happy" | "neutral" | "sad";
