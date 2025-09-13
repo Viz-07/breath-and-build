@@ -7,9 +7,11 @@ import {
   BookOpen, 
   TrendingUp 
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
   const location = useLocation();
+  const { isMobile, isPortrait } = useIsMobile();
 
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -20,10 +22,16 @@ const Navigation = () => {
     { path: "/insights", icon: TrendingUp, label: "Insights" },
   ];
 
+  // Always show Dashboard
+  const visibleItems = isMobile && isPortrait 
+    ? navItems.filter(item => item.path === "/") 
+    : navItems;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur border-b border-border/50 shadow-calm">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
+          {/* App title */}
           <Link 
             to="/" 
             className="text-2xl font-semibold text-primary hover:text-primary-glow calm-transition"
@@ -31,8 +39,9 @@ const Navigation = () => {
             MindfulTasks
           </Link>
           
+          {/* Navigation items */}
           <div className="flex items-center space-x-8">
-            {navItems.map(({ path, icon: Icon, label }) => (
+            {visibleItems.map(({ path, icon: Icon, label }) => (
               <Link
                 key={path}
                 to={path}
